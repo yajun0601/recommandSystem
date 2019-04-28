@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>Recommand</artifactId>
+        <groupId>com.yajun</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>recommander</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>dataloader</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core -->
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-core_2.12</artifactId>
+                <version>2.4.2</version>
+                <!-- provider 如果存在，那么运行时 jar 包不存在，也不会打包到发行版本，只是编译器有效-->
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-streaming_2.12</artifactId>
+                <version>2.4.2</version>
+                <!-- provider 如果存在，那么运行时 jar 包不存在，也不会打包到发行版本，只是编译器有效-->
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-sql_2.12</artifactId>
+                <version>2.4.2</version>
+                <!-- provider 如果存在，那么运行时 jar 包不存在，也不会打包到发行版本，只是编译器有效-->
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-mllib_2.12</artifactId>
+                <version>2.4.2</version>
+                <!-- provider 如果存在，那么运行时 jar 包不存在，也不会打包到发行版本，只是编译器有效-->
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-graphx_2.12</artifactId>
+                <version>2.4.2</version>
+                <!-- provider 如果存在，那么运行时 jar 包不存在，也不会打包到发行版本，只是编译器有效-->
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <!-- declared in parent, versions needn't to classify -->
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
