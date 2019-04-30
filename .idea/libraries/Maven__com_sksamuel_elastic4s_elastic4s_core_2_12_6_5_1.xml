@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.sksamuel.elastic4s:elastic4s-core_2.12:6.5.1">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/sksamuel/elastic4s/elastic4s-core_2.12/6.5.1/elastic4s-core_2.12-6.5.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/sksamuel/elastic4s/elastic4s-core_2.12/6.5.1/elastic4s-core_2.12-6.5.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/sksamuel/elastic4s/elastic4s-core_2.12/6.5.1/elastic4s-core_2.12-6.5.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
