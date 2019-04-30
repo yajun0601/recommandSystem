@@ -10,8 +10,25 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>dataloader</artifactId>
+    <packaging>pom</packaging>
+
+    <properties>
+        <elasticsearch-spark.version>6.7.0</elasticsearch-spark.version>
+        <elasticsearch.version>6.7.0</elasticsearch.version>
+
+        <mongodb-spark.version>2.4.0</mongodb-spark.version>
+        <casbah.version>3.1.1</casbah.version>
+    </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.9.1</version>
+        </dependency>
+
+
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
@@ -31,13 +48,13 @@
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>casbah-core_2.12</artifactId>
-            <version>3.1.1</version>
+            <version>${casbah.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.mongodb.spark/mongo-spark-connector -->
         <dependency>
             <groupId>org.mongodb.spark</groupId>
             <artifactId>mongo-spark-connector_2.12</artifactId>
-            <version>2.4.0</version>
+            <version>${mongodb-spark.version}</version>
         </dependency>
 
 
@@ -45,14 +62,14 @@
         <!-- https://mvnrepository.com/artifact/org.elasticsearch.client/elasticsearch-rest-client -->
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-client</artifactId>
-            <version>7.0.0</version>
+            <artifactId>transport</artifactId>
+            <version>${elasticsearch.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch-spark-20 -->
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch-spark-20_2.11</artifactId>
-            <version>7.0.0</version>
+            <version>${elasticsearch.version}</version>
 
             <!-- 将依赖的包从路径中排除-->
             <exclusions>

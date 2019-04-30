@@ -1,10 +1,20 @@
 package com.rec.dataloader
 
 
+import java.net.InetAddress
+
 import com.mongodb.casbah.commons.MongoDBObject
 import com.mongodb.casbah.{MongoClient, MongoClientURI}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest
+import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.common.transport.TransportAddress
+import org.elasticsearch.transport.client.PreBuiltTransportClient
+import java.net.InetAddress
+
 
 // analyze data , use ^ to split
 //2^                  ID
@@ -54,6 +64,11 @@ case class ESConfig(val httpHosts:String, val trasportHosts:String, val index:St
 
 // 数据主加载服务
 object DataLoader {
+  val MOVIE_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\movies.csv"
+  val RATING_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\ratings.csv"
+  val TAG_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\tags.csv"
+
+
   val MONGODB_MOVIE_COLLECTION = "Movie"
   val MONGODB_RATING_COLLECTION = "Rating"
   val MONGODB_TAG_COLLECTION = "Tag"
@@ -62,19 +77,15 @@ object DataLoader {
 
   def main(args: Array[String]): Unit = {
 
-    val MOVIE_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\movies.csv"
-    val RATING_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\ratings.csv"
-    val TAG_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\tags.csv"
-
 
     val config=Map(
-      "spark.cores" -> "local[*]",
+      "spark.cores" -> "local[2]",
       "mongo.uri" -> "mongodb://10.22.1.5:27017/recommender",
       "mongo.db" -> "recommender",
-      "es.httpHosts" ->"10.22.1.5:9200",
-      "es.transportHosts" ->"10.22.1.5:9300",
+      "es.httpHosts" ->"192.168.10.32:9200",
+      "es.transportHosts" ->"192.168.10.32:9300",
       "es.index"->"recommender",
-      "es.cluster.name"->"elasticsearch"
+      "es.cluster.name"->"wallet"
     )
 
     // spark config
@@ -108,7 +119,28 @@ object DataLoader {
     // store into mongodb
     storeDataInMongoDB(movieDF, ratingDF, tagDF)
     // store data into ES
-    storeDataInES()
+
+    // 首先将 Tag 数据集处理， MID, tag1|tag2|tag3
+    import org.apache.spark.sql.functions._
+    /**
+      * MID, Tags
+      * 1   tag1|tag2|tag3
+      */
+    val newTag = tagDF.groupBy($"mid").agg(concat_ws("|", collect_set($"tag")).as("tags")).select("mid","tags")
+    // 新 tag  ==》 movies 数据集
+
+    val movieWithTagsDF = movieDF.join(newTag,Seq("mid","mid"),"left")
+    // 声明了一个ES配置的隐式参数
+    implicit  val esConfig = ESConfig(config.get("es.httpHosts").get,config.get("es.transportHosts").get,config.get("es.index").get,config.get("es.cluster.name").get)
+    println(esConfig.toString)
+    // 新movie  =》 ES
+    /**  Fix  the confilct
+      * java.lang.IllegalStateException: availableProcessors is already set to [4], rejecting [4]
+      * at io.netty.util.NettyRuntime$AvailableProcessorsHolder.setAvailableProcessors(NettyRuntime.java:51)
+      */
+    System.setProperty("es.set.netty.runtime.available.processors", "false")
+    // 新movie  =》 ES
+    //storeDataInES(movieWithTagsDF)
 
     spark.stop()
   }
@@ -123,16 +155,19 @@ object DataLoader {
 
     // write data into mongoDB  mongo spark connect
     movieDF.write.option("uri", mongoConfig.uri)
+        .option("spark.mongodb.input.partitioner","MongoPaginateByCountPartitioner")
       .option("collection", MONGODB_MOVIE_COLLECTION)
       .mode("overwrite")
       .format("com.mongodb.spark.sql")
       .save()
-    movieDF.write.option("uri", mongoConfig.uri)
+
+    ratingDF.write.option("uri", mongoConfig.uri)
       .option("collection", MONGODB_RATING_COLLECTION)
       .mode("overwrite")
       .format("com.mongodb.spark.sql")
       .save()
-    movieDF.write.option("uri", mongoConfig.uri)
+
+    tagDF.write.option("uri", mongoConfig.uri)
       .option("collection", MONGODB_TAG_COLLECTION)
       .mode("overwrite")
       .format("com.mongodb.spark.sql")
@@ -143,11 +178,46 @@ object DataLoader {
     mongoClient(mongoConfig.db)(MONGODB_RATING_COLLECTION).createIndex(MongoDBObject("uid" -> 1))
     mongoClient(mongoConfig.db)(MONGODB_TAG_COLLECTION).createIndex(MongoDBObject("mid" -> 1))
     mongoClient(mongoConfig.db)(MONGODB_TAG_COLLECTION).createIndex(MongoDBObject("uid" -> 1))
-
     // close connection
     mongoClient.close()
   }
-  def storeDataInES():Unit={
+  def storeDataInES(movieDF:DataFrame)(implicit eSConfig: ESConfig):Unit={
+    // create setting
+    val settings:Settings = Settings.builder().put("cluster.name",eSConfig.clustername).build()
+    // create client
+    val esClient = new PreBuiltTransportClient(settings)
 
+/* old implementation
+    val REGEX_HOST_PORT = "(.+):(\\D+)".r
+
+    eSConfig.trasportHosts.split(",").foreach{
+      case REGEX_HOST_PORT(host:String, port:String) =>{
+        print(host + ":" + port)
+        esClient.addTransportAddress(new TransportAddress(InetAddress.getByName(host),port.toInt)) // new api?
+      }
+    }
+      "es.httpHosts" ->"192.168.10.32:9200",
+      "es.transportHosts" ->"192.168.10.32:9300",
+      "es.index"->"recommender",
+      "es.cluster.name"->"elasticsearch"
+    */
+
+    // on startup// on startup  在这种情况下，只需要一个 host， 用简单粗暴的方式处理
+    esClient.addTransportAddress(new TransportAddress(InetAddress.getByName("192.168.10.32"),9300))
+
+    // clean old data
+    if(esClient.admin().indices().exists(new IndicesExistsRequest(eSConfig.index)).actionGet().isExists){
+      esClient.admin().indices().delete(new DeleteIndexRequest(eSConfig.index))
+    }
+    esClient.admin().indices().create(new CreateIndexRequest(eSConfig.index))
+    println("wrting data into ES" + eSConfig.toString)
+    //write into ES
+    movieDF.write
+      .option("es.nodes",eSConfig.httpHosts)
+      .option("es.http.timeout", "100m")
+      .option("es.mapping.id", "mid")
+      .mode("overwrite")
+      .format("org.elasticsearch.spark.sql")
+      .save(eSConfig.index + '/' + ES_MOVIE_INDEX)
   }
 }
