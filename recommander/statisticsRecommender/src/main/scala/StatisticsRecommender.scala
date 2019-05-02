@@ -84,7 +84,7 @@ object StatisticsRecommender {
 
     val config = Map(
       "spark.cores" -> "local[*]",
-      "mongo.uri" -> "mongodb://10.22.1.5:27017/recommender",
+      "mongo.uri" -> "mongodb://localhost:27017/recommender",
       "mongo.db" -> "recommender"
     )
 
@@ -94,6 +94,8 @@ object StatisticsRecommender {
     val mongoConfig = new MongoConfig(config("mongo.uri"),config("mongo.db"))
 
     import spark.implicits._
+
+
     // data load
     val ratingDF = spark.read.option("uri",mongoConfig.uri)
       .option("collection",MONGODB_RATING_COLLECTION)

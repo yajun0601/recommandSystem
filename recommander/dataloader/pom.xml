@@ -15,7 +15,6 @@
     <properties>
         <elasticsearch-spark.version>6.7.0</elasticsearch-spark.version>
         <elasticsearch.version>6.7.0</elasticsearch.version>
-
         <mongodb-spark.version>2.4.0</mongodb-spark.version>
         <casbah.version>3.1.1</casbah.version>
     </properties>

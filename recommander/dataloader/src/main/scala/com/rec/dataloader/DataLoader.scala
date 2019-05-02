@@ -64,9 +64,9 @@ case class ESConfig(val httpHosts:String, val trasportHosts:String, val index:St
 
 // 数据主加载服务
 object DataLoader {
-  val MOVIE_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\movies.csv"
-  val RATING_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\ratings.csv"
-  val TAG_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\tags.csv"
+  val MOVIE_DATA_PATH = "recommander/dataloader/src/main/resources/movies.csv"
+  val RATING_DATA_PATH = "recommander/dataloader/src/main/resources/ratings.csv"
+  val TAG_DATA_PATH = "recommander/dataloader/src/main/resources/tags.csv"
 
 
   val MONGODB_MOVIE_COLLECTION = "Movie"
@@ -79,8 +79,8 @@ object DataLoader {
 
 
     val config=Map(
-      "spark.cores" -> "local[2]",
-      "mongo.uri" -> "mongodb://10.22.1.5:27017/recommender",
+      "spark.cores" -> "local[*]",
+      "mongo.uri" -> "mongodb://localhost:27017/recommender",
       "mongo.db" -> "recommender",
       "es.httpHosts" ->"192.168.10.32:9200",
       "es.transportHosts" ->"192.168.10.32:9300",
@@ -90,6 +90,9 @@ object DataLoader {
 
     // spark config
     val sparkConf = new SparkConf().setAppName("DataLoader").setMaster(config.get("spark.cores").get)
+
+
+
     // spark session
     val spark = SparkSession.builder().config(sparkConf).getOrCreate()
     import spark.implicits._
