@@ -3,6 +3,7 @@ import org.apache.spark.mllib.recommendation.ALS
 import org.apache.spark.mllib.recommendation.Rating
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkConf
+import org.jblas.DoubleMatrix
 
 // analyze data , use ^ to split
 //2^                  ID
@@ -56,6 +57,8 @@ object OfflineRecommender {
 
   val ES_MOVIE_INDEX = "Movie"
 
+  val USER_RECS = "UserRecs"
+  val MOVIE_RECS = "MovieRecs"
 
   def main(args: Array[String]): Unit = {
 
@@ -69,7 +72,7 @@ object OfflineRecommender {
 
     // create spark session
     val sparkconf = new SparkConf().setAppName("OfflineRecommender").setMaster(config("spark.cores"))
-      .set("spark.executor.memory","1G")
+      .set("spark.executor.memory","2G")
       .set("spark.driver.memory","1G")
     val sparkSession = SparkSession.builder().config(sparkconf).getOrCreate()
 
@@ -90,6 +93,7 @@ object OfflineRecommender {
       .as[MovieRating]
       .rdd
       .map(rating => (rating.uid,rating.mid,rating.score))
+      .cache() // cache result, not calculate again
 
     //
     val trainData = ratingRDD.map(x  => Rating(x._1,x._2,x._3))
@@ -99,7 +103,7 @@ object OfflineRecommender {
 
 
     // need  usersProducts  RDD[(int),(int)]
-    val userRDD = ratingRDD.map(_._1).distinct()
+    val userRDD = ratingRDD.map(_._1).distinct().cache()
     val movieRDD = sparkSession
         .read.option("uri",mongoConfig.uri)
         .option("collection",MONGODB_MOVIE_COLLECTION)
@@ -109,6 +113,7 @@ object OfflineRecommender {
         .as[Movie]
         .rdd
         .map(_.mid)
+      .cache() // cache result, not calculate again
 
     val userMovies = userRDD.cartesian(movieRDD)
     val preRatings = model.predict(userMovies)
@@ -120,7 +125,6 @@ object OfflineRecommender {
           case (uid,recs) => UserRecs(uid,recs.toList.sortWith(_._2 > _._2).take(USER_MAX_RECOMMENDATION).map(x=>Recommendation(x._1,x._2)))
         }.toDF()
 
-    val USER_RECS = "userRecs"
     userRecs.write
         .option("uri",mongoConfig.uri)
         .option("collection",USER_RECS)
@@ -131,8 +135,32 @@ object OfflineRecommender {
 
     //  user recommend
     //model.predict()
+    val movieFeatures = model.productFeatures.map{case (mid,features) =>
+      (mid, new DoubleMatrix(features))}
+
+    val movieRecs =  movieFeatures.cartesian(movieFeatures)
+        .filter{case (a,b) => a._1 != b._1} // movieA.id != movieB.id
+        .map{ case (a,b) =>
+        val simScore = this.cosinSim(a._2,b._2)
+      (a._1,(b._1,simScore))
+      }.filter(_._2._2 > 0.8)
+      .groupByKey()
+      .map{
+        case (mid,items) => MovieRecs(mid,items.toList.map(x => Recommendation(x._1,x._2)))
+      }.toDF()
+
+    movieRecs.write
+      .option("uri",mongoConfig.uri)
+      .option("collection", MOVIE_RECS)
+      .mode("overwrite")
+      .format("com.mongodb.spark.sql")
+      .save()
 
     //
     sparkSession.close()
+  }
+  // cosin similarity of two movies
+  def cosinSim(movie1: DoubleMatrix, movie2: DoubleMatrix): Double = {
+    movie1.dot(movie2)/(movie1.norm2() * movie2.norm2())
   }
 }

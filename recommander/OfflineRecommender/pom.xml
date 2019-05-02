@@ -43,6 +43,16 @@
             <artifactId>mongo-spark-connector_2.12</artifactId>
             <version>${mongodb-spark.version}</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.jblas/jblas -->
+        <dependency>
+            <groupId>org.jblas</groupId>
+            <artifactId>jblas</artifactId>
+            <version>1.2.4</version>
+        </dependency>
+
+
+
     </dependencies>
 
 
