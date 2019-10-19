@@ -1,7 +1,6 @@
 package com.rec.dataloader
 
 
-import java.net.InetAddress
 
 import com.mongodb.casbah.commons.MongoDBObject
 import com.mongodb.casbah.{MongoClient, MongoClientURI}
@@ -82,8 +81,8 @@ object DataLoader {
       "spark.cores" -> "local[*]",
       "mongo.uri" -> "mongodb://localhost:27017/recommender",
       "mongo.db" -> "recommender",
-      "es.httpHosts" ->"192.168.10.32:9200",
-      "es.transportHosts" ->"192.168.10.32:9300",
+      "es.httpHosts" ->"localhost:9200",
+      "es.transportHosts" ->"localhost:9300",
       "es.index"->"recommender",
       "es.cluster.name"->"wallet"
     )
