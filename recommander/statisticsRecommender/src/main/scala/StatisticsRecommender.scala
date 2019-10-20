@@ -156,8 +156,7 @@ object StatisticsRecommender {
     //所有的电影类别
     val genres = List("Action","Adventure","Animation","Comedy","Ccrime","Documentary","Drama","Family","Fantasy","Foreign","History","Horror","Music","Mystery"
       ,"Romance","Science","Tv","Thriller","War","Western")
-    val genresRDD = spark.sparkContext.makeRDD(genres)
-
+    val genresRDD = spark.sparkContext.makeRDD(genres
 
 
     val genreTopMovies = genresRDD.cartesian(movieScore.rdd)
@@ -167,7 +166,7 @@ object StatisticsRecommender {
       case (genres,row) => {
         (genres, (row.getAs[Int]("mid"), row.getAs[Double]("avg")))
       }
-    }.groupByKey()
+    }.groupByKey() // 将 genres 数据集中的相同的聚集
       .map{
         case (genres, items) => GenresRecommendation(genres, items.toList.sortWith(_._2 > _._2).take(10).map(item => Recommendation(item._1, item._2)))
       }.toDF()

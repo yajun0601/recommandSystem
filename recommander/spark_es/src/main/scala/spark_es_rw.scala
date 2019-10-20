@@ -16,7 +16,7 @@ case class Person(id: Int, name: String, address: String)
 
 
 object spark_es_rw {
-  val TAG_DATA_PATH = "D:\\git\\Recommand\\recommander\\dataloader\\src\\main\\resources\\tags.csv"
+  val TAG_DATA_PATH = "/Volumes/data/recommandSystem/recommander/dataloader/src/main/resources/tags.csv"
 
   def main(args: Array[String]): Unit = {
 
@@ -24,7 +24,7 @@ object spark_es_rw {
 
     val spark = SparkSession.builder()
         .config(sparkConf)
-      .config("es.nodes","192.168.10.32:9200")
+      .config("es.nodes","localhost:9200")
       .config("pushdown","true")
       .config("es.index.auto.create","true")
       .config("es.nodes.wan.only","true")

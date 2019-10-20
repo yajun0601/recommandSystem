@@ -47,6 +47,9 @@ case class MovieRecs(mid:Int, recs:Seq[Recommendation])
 
 object OfflineRecommender {
 
+
+  val USER_MAX_RECOMMENDATION = 8
+
   val MONGODB_MOVIE_COLLECTION = "Movie"
   val MONGODB_RATING_COLLECTION = "Rating"
 
@@ -62,7 +65,7 @@ object OfflineRecommender {
 
   def main(args: Array[String]): Unit = {
 
-    // SparkConf
+    // Conf
     val config = Map(
       "spark.cores" -> "local[*]",
       "mongo.uri" -> "mongodb://localhost:27017/recommender",
@@ -70,7 +73,7 @@ object OfflineRecommender {
     )
 
 
-    // create spark session
+    // create spark config session
     val sparkconf = new SparkConf().setAppName("OfflineRecommender").setMaster(config("spark.cores"))
       .set("spark.executor.memory","2G")
       .set("spark.driver.memory","1G")
@@ -82,7 +85,7 @@ object OfflineRecommender {
 
     import sparkSession.implicits._
 
-
+    // TRAIN ALS MODLE
 
     val ratingRDD = sparkSession
       .read
@@ -95,12 +98,14 @@ object OfflineRecommender {
       .map(rating => (rating.uid,rating.mid,rating.score))
       .cache() // cache result, not calculate again
 
-    //
+    // create train data set
     val trainData = ratingRDD.map(x  => Rating(x._1,x._2,x._3))
-    val (rank,iterations,lambda) = (50,10,0.01)
+    val (rank,iterations,lambda) = (30,10,0.01)
     // ALS model
     val model = ALS.train(trainData,rank,iterations,lambda)
 
+    model.save(sparkSession.sparkContext,"als.model")
+//    model.predict()
 
     // need  usersProducts  RDD[(int),(int)]
     val userRDD = ratingRDD.map(_._1).distinct().cache()
@@ -117,8 +122,6 @@ object OfflineRecommender {
 
     val userMovies = userRDD.cartesian(movieRDD)
     val preRatings = model.predict(userMovies)
-
-    val USER_MAX_RECOMMENDATION = 20
     val userRecs =  preRatings.map(rating => (rating.user, (rating.product,rating.rating)))
         .groupByKey()
         .map{

@@ -9,6 +9,8 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>recommander</module>
+        <module>website</module>
+        <module>businessServer</module>
     </modules>
     <packaging>pom</packaging>
 
